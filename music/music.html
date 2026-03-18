@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Music Player</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-color: #1e1e1e;
+            --text-color: #ffffff;
+            --accent-color: #1db954;
+            --secondary-text: #b3b3b3;
+            --danger-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .player-container {
+            background-color: var(--card-color);
+            width: 100%;
+            max-width: 400px;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Artwork Area */
+        .album-art {
+            width: 250px;
+            height: 250px;
+            background-color: #282828;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .album-art img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .note-icon {
+            font-size: 80px;
+            color: var(--secondary-text);
+        }
+
+        /* Song Info */
+        .song-info {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .song-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 0 0 5px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .artist-name {
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+            margin: 0;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #4d4d4d;
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--accent-color);
+            width: 0%;
+            border-radius: 2px;
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: -3px;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .progress-bar:hover .progress-fill::after {
+            opacity: 1;
+        }
+
+        .time-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--secondary-text);
+            margin-top: 5px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: transform 0.1s;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .play-btn {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+        }
+
+        /* TIMER SECTION */
+        .timer-section {
+            width: 100%;
+            background-color: #282828;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid #333;
+        }
+
+        .timer-header {
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+            margin-bottom: 10px;
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .timer-input {
+            width: 60px;
+            padding: 8px;
+            border-radius: 5px;
+            border: none;
+            background-color: #333;
+            color: white;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .timer-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .timer-btn.stop {
+            background-color: var(--danger-color);
+        }
+
+        .timer-display {
+            margin-top: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            display: none;
+        }
+
+        /* LOAD MUSIC SECTION (UPDATED) */
+        .load-section {
+            width: 100%;
+            margin-top: 10px;
+            border-top: 1px solid #333;
+            padding-top: 15px;
+        }
+
+        .load-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .load-btn {
+            background-color: #333;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .load-btn:hover {
+            background-color: #444;
+        }
+
+        .playlist {
+            max-height: 150px;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .playlist-item {
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .playlist-item:hover {
+            background-color: #333;
+        }
+
+        .playlist-item.active {
+            background-color: rgba(29, 185, 84, 0.2);
+            color: var(--accent-color);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="player-container">
+        <!-- Artwork -->
+        <div class="album-art">
+            <div class="note-icon">♪</div>
+            <img id="album-img" src="" alt="Album Art">
+        </div>
+
+        <!-- Info -->
+        <div class="song-info">
+            <h2 class="song-title" id="title">Load Music to Start</h2>
+            <p class="artist-name" id="artist">No track loaded</p>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="time-info">
+                <span id="current-time">0:00</span>
+                <span id="duration">0:00</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="control-btn" id="prev-btn">⏮</button>
+            <button class="control-btn play-btn" id="play-btn">▶</button>
+            <button class="control-btn" id="next-btn">⏭</button>
+        </div>
+
+        <!-- TIMER SECTION -->
+        <div class="timer-section">
+            <div class="timer-header">Sleep Timer (Repeat 1 Song)</div>
+            <div class="timer-controls" id="timer-setup">
+                <input type="number" id="timer-input" class="timer-input" value="60" min="1" max="999">
+                <span style="color: #b3b3b3">mins</span>
+                <button class="timer-btn" id="start-timer-btn">Start</button>
+            </div>
+            <div class="timer-display" id="timer-display">01:00:00</div>
+            <button class="timer-btn stop" id="stop-timer-btn" style="display:none; margin-top:10px;">Cancel Timer</button>
+        </div>
+
+        <!-- LOAD MUSIC SECTION -->
+        <div class="load-section">
+            <div class="load-buttons">
+                <!-- Button for Individual Files -->
+                <label for="file-input-files" class="load-btn">
+                    🎵 Load Files
+                </label>
+                <input type="file" id="file-input-files" multiple accept="audio/*">
+
+                <!-- Button for Folder -->
+                <label for="file-input-folder" class="load-btn">
+                    📁 Load Folder
+                </label>
+                <input type="file" id="file-input-folder" webkitdirectory multiple>
+            </div>
+            
+            <div class="playlist" id="playlist">
+                <div style="text-align:center; color:#555; padding: 20px; font-size: 0.8rem;">
+                    Playlist is empty
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audio-player"></audio>
+
+    <script>
+        // DOM Elements
+        const audioPlayer = document.getElementById('audio-player');
+        const playBtn = document.getElementById('play-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const titleEl = document.getElementById('title');
+        const artistEl = document.getElementById('artist');
+        const progressBar = document.getElementById('progress-bar');
+        const progressFill = document.getElementById('progress-fill');
+        const currentTimeEl = document.getElementById('current-time');
+        const durationEl = document.getElementById('duration');
+        const playlistEl = document.getElementById('playlist');
+        const albumImg = document.getElementById('album-img');
+        const noteIcon = document.querySelector('.note-icon');
+
+        // Load Elements
+        const fileInputFiles = document.getElementById('file-input-files');
+        const fileInputFolder = document.getElementById('file-input-folder');
+
+        // Timer Elements
+        const timerInput = document.getElementById('timer-input');
+        const startTimerBtn = document.getElementById('start-timer-btn');
+        const stopTimerBtn = document.getElementById('stop-timer-btn');
+        const timerDisplay = document.getElementById('timer-display');
+        const timerSetup = document.getElementById('timer-setup');
+
+        // State
+        let tracks = [];
+        let currentTrackIndex = 0;
+        
+        // Timer State
+        let timerInterval = null;
+        let timerEndTime = null;
+        let isTimerActive = false;
+
+        // --- File Handling (UPDATED) ---
+
+        // Handler for individual files
+        fileInputFiles.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // Handler for folder
+        fileInputFolder.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            const fileArray = Array.from(files);
+            // Filter to ensure only audio files are loaded
+            tracks = fileArray.filter(file => file.type.startsWith('audio/'));
+            
+            if (tracks.length > 0) {
+                renderPlaylist();
+                loadTrack(0);
+            } else {
+                alert("No compatible audio files found.");
+            }
+        }
+
+        // --- Playlist Rendering ---
+        function renderPlaylist() {
+            playlistEl.innerHTML = '';
+            tracks.forEach((track, index) => {
+                const item = document.createElement('div');
+                item.className = 'playlist-item';
+                item.textContent = track.name;
+                item.addEventListener('click', () => {
+                    loadTrack(index);
+                    playTrack();
+                });
+                playlistEl.appendChild(item);
+            });
+            updateActiveItem();
+        }
+
+        function updateActiveItem() {
+            const items = playlistEl.querySelectorAll('.playlist-item');
+            items.forEach((item, index) => {
+                if (index === currentTrackIndex) {
+                    item.classList.add('active');
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        // --- Player Logic ---
+        function loadTrack(index) {
+            if (index < 0 || index >= tracks.length) return;
+            
+            currentTrackIndex = index;
+            const track = tracks[currentTrackIndex];
+            
+            const fileUrl = URL.createObjectURL(track);
+            audioPlayer.src = fileUrl;
+            
+            titleEl.textContent = track.name.replace(/\.[^/.]+$/, "");
+            artistEl.textContent = "Local File";
+            updateActiveItem();
+            
+            noteIcon.style.display = 'block';
+            albumImg.style.display = 'none';
+        }
+
+        function playTrack() {
+            audioPlayer.play();
+            playBtn.textContent = '⏸';
+        }
+
+        function pauseTrack() {
+            audioPlayer.pause();
+            playBtn.textContent = '▶';
+        }
+
+        playBtn.addEventListener('click', () => {
+            if (tracks.length === 0) return;
+            if (audioPlayer.paused) {
+                playTrack();
+            } else {
+                pauseTrack();
+            }
+        });
+
+        // Modified Next/Prev to respect Timer
+        nextBtn.addEventListener('click', () => {
+            if (tracks.length === 0) return;
+            
+            if(isTimerActive) {
+                audioPlayer.currentTime = 0; 
+                playTrack();
+            } else {
+                currentTrackIndex = (currentTrackIndex + 1) % tracks.length;
+                loadTrack(currentTrackIndex);
+                playTrack();
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (tracks.length === 0) return;
+            
+            if(isTimerActive) {
+                audioPlayer.currentTime = 0;
+                playTrack();
+            } else {
+                currentTrackIndex = (currentTrackIndex - 1 + tracks.length) % tracks.length;
+                loadTrack(currentTrackIndex);
+                playTrack();
+            }
+        });
+
+        // --- Progress Bar ---
+        audioPlayer.addEventListener('timeupdate', () => {
+            if (audioPlayer.duration) {
+                const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                progressFill.style.width = progress + '%';
+                currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+            }
+        });
+
+        audioPlayer.addEventListener('loadedmetadata', () => {
+            durationEl.textContent = formatTime(audioPlayer.duration);
+        });
+
+        progressBar.addEventListener('click', (e) => {
+            const width = progressBar.clientWidth;
+            const clickX = e.offsetX;
+            const duration = audioPlayer.duration;
+            audioPlayer.currentTime = (clickX / width) * duration;
+        });
+
+        // --- Core Logic: Song End ---
+        audioPlayer.addEventListener('ended', () => {
+            if (isTimerActive) {
+                // Timer is active: Loop the current song indefinitely
+                audioPlayer.currentTime = 0;
+                audioPlayer.play();
+            } else {
+                // Normal mode: Go to next song
+                currentTrackIndex = (currentTrackIndex + 1) % tracks.length;
+                loadTrack(currentTrackIndex);
+                playTrack();
+            }
+        });
+
+        // --- TIMER LOGIC ---
+
+        function formatTimerTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            
+            const hStr = h.toString().padStart(2, '0');
+            const mStr = m.toString().padStart(2, '0');
+            const sStr = s.toString().padStart(2, '0');
+            
+            return `${hStr}:${mStr}:${sStr}`;
+        }
+
+        startTimerBtn.addEventListener('click', () => {
+            const minutes = parseInt(timerInput.value);
+            if (isNaN(minutes) || minutes <= 0) {
+                alert("Please enter a valid number of minutes.");
+                return;
+            }
+
+            isTimerActive = true;
+            const durationMs = minutes * 60 * 1000;
+            timerEndTime = Date.now() + durationMs;
+
+            timerSetup.style.display = "none";
+            timerDisplay.style.display = "block";
+            stopTimerBtn.style.display = "block";
+            
+            if (audioPlayer.paused && tracks.length > 0) {
+                playTrack();
+            }
+
+            if(timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                const now = Date.now();
+                const remaining = timerEndTime - now;
+
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "00:00:00";
+                    
+                    audioPlayer.pause();
+                    audioPlayer.currentTime = 0;
+                    pauseTrack();
+                    
+                    isTimerActive = false;
+                    setTimeout(() => {
+                        timerSetup.style.display = "flex";
+                        timerDisplay.style.display = "none";
+                        stopTimerBtn.style.display = "none";
+                    }, 2000);
+                } else {
+                    timerDisplay.textContent = formatTimerTime(remaining / 1000);
+                }
+            }, 1000);
+        });
+
+        stopTimerBtn.addEventListener('click', () => {
+            clearInterval(timerInterval);
+            isTimerActive = false;
+            timerSetup.style.display = "flex";
+            timerDisplay.style.display = "none";
+            stopTimerBtn.style.display = "none";
+        });
+
+        // --- Utilities ---
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+    </script>
+</body>
+</html>
